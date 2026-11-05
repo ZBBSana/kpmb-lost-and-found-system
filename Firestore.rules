@@ -1,0 +1,149 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isMPP() {
+      return signedIn()
+        && exists(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        )
+        && get(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        ).data.role == "mpp_admin";
+    }
+
+    function isStudent() {
+      return signedIn()
+        && exists(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        )
+        && get(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        ).data.role == "student";
+    }
+
+    function isClaimableFoundReport(reportId) {
+      return exists(
+        /databases/$(database)/documents/itemReports/$(reportId)
+      )
+      && get(
+        /databases/$(database)/documents/itemReports/$(reportId)
+      ).data.reportType == "found"
+      && get(
+        /databases/$(database)/documents/itemReports/$(reportId)
+      ).data.reportStatus in ["active", "matched"]
+      && get(
+        /databases/$(database)/documents/itemReports/$(reportId)
+      ).data.reporterId != request.auth.uid;
+    }
+
+        match /itemReports/{reportId} {
+      // Signed-in users can browse item reports.
+      allow read: if signedIn();
+
+      // A student can create their own lost or found report.
+      allow create: if isStudent()
+        && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.reportType in ["lost", "found"]
+        && request.resource.data.reportStatus == "active";
+
+      // MPP can manage reports.
+      // Students can edit their own active or matched reports,
+      // but cannot change the owner, type, or official status.
+      allow update: if isMPP()
+        || (
+          isStudent()
+          && resource.data.reporterId == request.auth.uid
+          && resource.data.reportStatus in ["active", "matched"]
+          && request.resource.data.reporterId == resource.data.reporterId
+          && request.resource.data.reportType == resource.data.reportType
+          && request.resource.data.reportStatus == resource.data.reportStatus
+        );
+
+      allow delete: if isMPP()
+        || (
+          isStudent()
+          && resource.data.reporterId == request.auth.uid
+          && resource.data.reportStatus in ["active", "matched"]
+        );
+    }
+
+    match /itemReports/{reportId} {
+      allow read: if signedIn();
+
+      allow create: if isStudent()
+        && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.reportStatus == "active";
+
+      allow update: if isMPP()
+        || (
+          isStudent()
+          && resource.data.reporterId == request.auth.uid
+          && request.resource.data.reporterId
+             == resource.data.reporterId
+          && request.resource.data.reportStatus
+             == resource.data.reportStatus
+          && resource.data.reportStatus in ["active", "matched"]
+        );
+
+      allow delete: if isMPP()
+        || (
+          isStudent()
+          && resource.data.reporterId == request.auth.uid
+          && resource.data.reportStatus in ["active", "matched"]
+        );
+    }
+
+    match /matchSuggestions/{matchId} {
+      allow read: if signedIn();
+      allow create: if signedIn();
+      allow update, delete: if isMPP();
+    }
+
+    match /ownershipClaims/{claimId} {
+      allow create: if isStudent()
+        && request.resource.data.claimantId == request.auth.uid
+        && request.resource.data.claimStatus == "pending"
+        && isClaimableFoundReport(request.resource.data.reportId);
+
+      allow read: if signedIn()
+        && (
+          resource.data.claimantId == request.auth.uid
+          || isMPP()
+        );
+
+      allow update, delete: if isMPP();
+    }
+
+    match /notifications/{notificationId} {
+      allow create: if signedIn();
+
+      allow read: if signedIn()
+        && (
+          resource.data.recipientId == request.auth.uid
+          || (
+            isMPP()
+            && resource.data.recipientRole == "mpp_admin"
+          )
+        );
+
+      allow update: if signedIn()
+        && (
+          resource.data.recipientId == request.auth.uid
+          || isMPP()
+        );
+
+      allow delete: if isMPP();
+    }
+
+    match /statusHistory/{historyId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isMPP();
+    }
+  }
+}

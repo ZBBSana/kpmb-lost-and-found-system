@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>KPMB Lost and Found Management System</title>
+
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+
+<body>
+  <div id="app">
+    <div class="loading-screen">
+      <div class="spinner"></div>
+      <p>Loading KPMB Lost and Found System...</p>
+    </div>
+  </div>
+
+  <!-- Firebase Compatibility SDK -->
+<script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+
+<!-- Project Configuration -->
+<script defer src="assets/js/firebase-config.js"></script>
+<script defer src="assets/js/cloudinary-config.js"></script>
+
+<!-- Main Project Script -->
+ <!-- PDF libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+<!-- MPP PDF report code -->
+<script src="./assets/js/mpp-pdf.js"></script>
+<script defer src="assets/js/app.js"></script>
